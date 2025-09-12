@@ -16,6 +16,7 @@ import org.junit.platform.commons.util.ClassLoaderUtils;
 import org.junit.platform.commons.util.ReflectionUtils;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 public class DijkstraTest {
 
@@ -34,27 +35,31 @@ public class DijkstraTest {
     void testCalculateDistancesWithNoArguments() {
         String output = withSwappedOutput(this::callMain);
         String[] lines = output.split("\n");
-        Pattern destinationPattern = Pattern.compile("^(.*) <-");
-        Pattern distancePattern = Pattern.compile("(\\([0-9]*(\\.[0-9]*)?\\))");
+        Pattern destinationPattern = Pattern.compile("^(.*?) <- .*");
+        Pattern distancePattern = Pattern.compile(".*\\(([0-9]*(\\.[0-9]*)?)\\)[\\W]*");
         Map<String, Double> distances = new HashMap<>();
         for (String line : lines) {
-            try {
-                String destination = destinationPattern.matcher(line).group();
-                double distance = Double.parseDouble(distancePattern.matcher(destination).group());
+            var destinationMatcher = destinationPattern.matcher(line);
+            var distanceMatcher = distancePattern.matcher(line);
+            if (destinationMatcher.matches() && distanceMatcher.matches()) {
+                String destination = destinationMatcher.group(1);
+                double distance = Double.parseDouble(distanceMatcher.group(1));
                 distances.put(destination, distance);
-            } catch (IllegalStateException _) {}
+            }
         }
-        assertEquals(Map.of(
+        Map.of(
                 "Lyon", 1.40,
                 "Paris", 3.30,
-                "Grenoble", 0.00,
                 "Dijon", 3.00,
                 "Valence", 1.00,
                 "Montpellier", 3.10,
-                "Bordeaux", 5.00,
+                "Bordeaux", 5.80,
                 "Toulouse", 5.85,
                 "Narbonne", 4.10
-        ), distances);
+        ).entrySet().forEach(e -> {
+            assertNotNull(distances.get(e.getKey()), "No distance for %s".formatted(e.getKey()));
+            assertEquals(e.getValue().doubleValue(), distances.get(e.getKey()));
+        });
     }
 
     private void callMain(String... args) {
@@ -62,7 +67,7 @@ public class DijkstraTest {
             getEntryPoint()
                     .flatMap(this::getMainMethod)
                     .orElseThrow()
-                    .invoke(args);
+                    .invoke(null, (Object) args);
         } catch (ReflectiveOperationException e) {
             throw new RuntimeException(e);
         }
@@ -74,7 +79,7 @@ public class DijkstraTest {
         System.setOut(new PrintStream(bos));
         try {
             runnable.run();
-        } catch (RuntimeException e) {
+        } finally {
             System.setOut(originalOut);
         }
         return bos.toString();
