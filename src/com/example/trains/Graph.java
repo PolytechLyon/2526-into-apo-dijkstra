@@ -95,14 +95,11 @@ public class Graph {
         }
     }
 
-    public void distancesFromFirstVertex() {
-        this.distancesFrom(this.vertices[0]);
-    }
-
     public void distancesFrom(Vertex start) {
         for (Vertex vertex : this.vertices) {
             vertex.setVisited(false);
             vertex.setDistance(Double.POSITIVE_INFINITY);
+            vertex.setPrevious(null);
         }
         start.setDistance(0);
 

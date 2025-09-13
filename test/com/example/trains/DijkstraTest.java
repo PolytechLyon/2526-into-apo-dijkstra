@@ -96,6 +96,14 @@ public class DijkstraTest {
     void testCalculateDistancesFromGrenoble() {
         String output = withSwappedOutput(() -> this.callMain("Grenoble"));
         String[] lines = output.split("\n");
+        Map<String, Double> distances = readDistances(lines);
+        DISTANCES_FROM_GRENOBLE.forEach((key, value) -> {
+            assertNotNull(distances.get(key), "No distance for %s".formatted(key));
+            assertEquals(value.doubleValue(), distances.get(key));
+        });
+    }
+
+    private Map<String, Double> readDistances(String[] lines) {
         Map<String, Double> distances = new HashMap<>();
         for (String line : lines) {
             var destinationMatcher = DESTINATION_PATTERN.matcher(line);
@@ -106,10 +114,7 @@ public class DijkstraTest {
                 distances.put(destination, distance);
             }
         }
-        DISTANCES_FROM_GRENOBLE.entrySet().forEach(e -> {
-            assertNotNull(distances.get(e.getKey()), "No distance for %s".formatted(e.getKey()));
-            assertEquals(e.getValue().doubleValue(), distances.get(e.getKey()));
-        });
+        return distances;
     }
 
     private void callMain(String... args) {
