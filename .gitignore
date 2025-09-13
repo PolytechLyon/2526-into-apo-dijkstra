@@ -32,5 +32,8 @@ build/
 ### Gradle ###
 .gradle/
 
+### Codespaces ###
+/bin
+
 ### Application files ###
 *.dot

@@ -5,7 +5,13 @@ public class Application {
         Graph graph = new Graph();
         graph.readFrom("input.txt");
         graph.toDotFormat("graph");
-        graph.distancesFrom("Grenoble");
-        graph.printDistances(System.out);
+        if (args.length == 0) {
+            graph.printEdges(System.out);
+        } else {
+            String start = args[0];
+            System.out.printf("Calculating distances from %s.\n", start);
+            graph.distancesFrom(start);
+            graph.printDistances(System.out);
+        }
     }
 }

@@ -1,22 +1,26 @@
 package com.example.trains;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
 import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.regex.Pattern;
+
 import org.junit.jupiter.api.Test;
 import org.junit.platform.commons.support.scanning.ClassFilter;
 import org.junit.platform.commons.support.scanning.ClasspathScanner;
 import org.junit.platform.commons.support.scanning.DefaultClasspathScanner;
 import org.junit.platform.commons.util.ClassLoaderUtils;
 import org.junit.platform.commons.util.ReflectionUtils;
-
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 public class DijkstraTest {
 
@@ -25,6 +29,34 @@ public class DijkstraTest {
             ReflectionUtils::tryToLoadClass
     );
 
+    private final Pattern EDGE_PATTERN = Pattern.compile("^(.*?) -> (.*?)[\\W]*$");
+    private final Pattern DESTINATION_PATTERN = Pattern.compile("^(.*?) <- .*");
+    private final Pattern DISTANCE_PATTERN = Pattern.compile(".*\\(([0-9]*(\\.[0-9]*)?)\\)[\\W]*");
+
+    private final Map<String, Double> DISTANCES_FROM_GRENOBLE = Map.of(
+            "Lyon", 1.40,
+            "Paris", 3.30,
+            "Dijon", 3.00,
+            "Valence", 1.00,
+            "Montpellier", 3.10,
+            "Bordeaux", 5.80,
+            "Toulouse", 5.85,
+            "Narbonne", 4.10
+    );
+
+    private final Map<String, Set<String>> EDGES = Map.of(
+            "Lyon", Set.of("Paris", "Grenoble", "Dijon", "Valence", "Montpellier"),
+            "Paris", Set.of("Lyon", "Montpellier", "Bordeaux", "Toulouse"),
+            "Grenoble", Set.of("Lyon", "Valence"),
+            "Dijon", Set.of("Lyon"),
+            "Valence", Set.of("Lyon", "Grenoble"),
+            "Montpellier", Set.of("Lyon", "Paris", "Narbonne"),
+            "Bordeaux", Set.of("Paris"),
+            "Toulouse", Set.of("Paris", "Narbonne"),
+            "Narbonne", Set.of("Montpellier", "Toulouse")
+    );
+
+
     @Test
     public void testEntryPointClassName() {
         var entryPoint = getEntryPoint().orElseThrow();
@@ -32,31 +64,49 @@ public class DijkstraTest {
     }
 
     @Test
-    void testCalculateDistancesWithNoArguments() {
+    void testPrintEdgesWhenNoArgs() {
         String output = withSwappedOutput(this::callMain);
         String[] lines = output.split("\n");
-        Pattern destinationPattern = Pattern.compile("^(.*?) <- .*");
-        Pattern distancePattern = Pattern.compile(".*\\(([0-9]*(\\.[0-9]*)?)\\)[\\W]*");
+        assertTrue(lines.length != 0, "Empty output.");
+        Map<String, Set<String>> edges = new HashMap<>();
+        for (String line : lines) {
+            var edgeMatcher = EDGE_PATTERN.matcher(line);
+            if (edgeMatcher.matches() && edgeMatcher.groupCount() >= 2) {
+                String source = edgeMatcher.group(1).trim();
+                String target = edgeMatcher.group(2).trim();
+                edges.computeIfAbsent(source, ignore -> new HashSet<>()).add(target);
+            }
+        }
+        EDGES.forEach((key, value) -> {
+            Set<String> targets = edges.get(key);
+            assertNotNull(targets, "No edge target for vertex %s, %d expected".formatted(key, value.size()));
+            assertEquals(value, targets, "Edge targets mismatch for vertex %s".formatted(key));
+        });
+    }
+
+    @Test
+    void testReadGrenobleAsFirstArgument() {
+        String output = withSwappedOutput(() -> this.callMain("Grenoble"));
+        String[] lines = output.split("\n");
+        assertTrue(lines.length != 0, "Empty output.");
+        assertTrue(lines[0].toLowerCase().contains("grenoble"), "Should print out city name passed in argument.");
+    }
+
+    @Test
+    void testCalculateDistancesFromGrenoble() {
+        String output = withSwappedOutput(() -> this.callMain("Grenoble"));
+        String[] lines = output.split("\n");
         Map<String, Double> distances = new HashMap<>();
         for (String line : lines) {
-            var destinationMatcher = destinationPattern.matcher(line);
-            var distanceMatcher = distancePattern.matcher(line);
+            var destinationMatcher = DESTINATION_PATTERN.matcher(line);
+            var distanceMatcher = DISTANCE_PATTERN.matcher(line);
             if (destinationMatcher.matches() && distanceMatcher.matches()) {
                 String destination = destinationMatcher.group(1);
                 double distance = Double.parseDouble(distanceMatcher.group(1));
                 distances.put(destination, distance);
             }
         }
-        Map.of(
-                "Lyon", 1.40,
-                "Paris", 3.30,
-                "Dijon", 3.00,
-                "Valence", 1.00,
-                "Montpellier", 3.10,
-                "Bordeaux", 5.80,
-                "Toulouse", 5.85,
-                "Narbonne", 4.10
-        ).entrySet().forEach(e -> {
+        DISTANCES_FROM_GRENOBLE.entrySet().forEach(e -> {
             assertNotNull(distances.get(e.getKey()), "No distance for %s".formatted(e.getKey()));
             assertEquals(e.getValue().doubleValue(), distances.get(e.getKey()));
         });

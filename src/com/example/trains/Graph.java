@@ -77,6 +77,14 @@ public class Graph {
         }
     }
 
+    public void printEdges(PrintStream output) {
+        for (Vertex vertex :  this.vertices) {
+            for (Edge edge: vertex.getEdges()) {
+                output.printf("%s -> %s\n", vertex.getName(), edge.target().getName());
+            }
+        }
+    }
+
     public void toDotFormat(String filename) {
         String filenameWithExtension = filename.endsWith(".dot") ?
                 filename : filename.concat(".dot");
