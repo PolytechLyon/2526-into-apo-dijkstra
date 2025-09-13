@@ -1,9 +1,5 @@
 package com.example.trains;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-
 import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
 import java.lang.reflect.Method;
@@ -13,8 +9,6 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-import java.util.regex.Pattern;
-
 import org.junit.jupiter.api.Test;
 import org.junit.platform.commons.support.scanning.ClassFilter;
 import org.junit.platform.commons.support.scanning.ClasspathScanner;
@@ -22,16 +16,16 @@ import org.junit.platform.commons.support.scanning.DefaultClasspathScanner;
 import org.junit.platform.commons.util.ClassLoaderUtils;
 import org.junit.platform.commons.util.ReflectionUtils;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
 public class DijkstraTest {
 
     private final ClasspathScanner classpathScanner = new DefaultClasspathScanner(
             ClassLoaderUtils::getDefaultClassLoader,
             ReflectionUtils::tryToLoadClass
     );
-
-    private final Pattern EDGE_PATTERN = Pattern.compile("^(.*?) -> (.*?)[\\W]*$");
-    private final Pattern DESTINATION_PATTERN = Pattern.compile("^(.*?) <- .*");
-    private final Pattern DISTANCE_PATTERN = Pattern.compile(".*\\(([0-9]*(\\.[0-9]*)?)\\)[\\W]*");
 
     private final Map<String, Double> DISTANCES_FROM_GRENOBLE = Map.of(
             "Lyon", 1.40,
@@ -70,10 +64,10 @@ public class DijkstraTest {
         assertTrue(lines.length != 0, "Empty output.");
         Map<String, Set<String>> edges = new HashMap<>();
         for (String line : lines) {
-            var edgeMatcher = EDGE_PATTERN.matcher(line);
-            if (edgeMatcher.matches() && edgeMatcher.groupCount() >= 2) {
-                String source = edgeMatcher.group(1).trim();
-                String target = edgeMatcher.group(2).trim();
+            String[] parts = line.split(",");
+            if (parts.length >= 2) {
+                String source = parts[0].trim();
+                String target = parts[1].trim();
                 edges.computeIfAbsent(source, ignore -> new HashSet<>()).add(target);
             }
         }
@@ -106,11 +100,10 @@ public class DijkstraTest {
     private Map<String, Double> readDistances(String[] lines) {
         Map<String, Double> distances = new HashMap<>();
         for (String line : lines) {
-            var destinationMatcher = DESTINATION_PATTERN.matcher(line);
-            var distanceMatcher = DISTANCE_PATTERN.matcher(line);
-            if (destinationMatcher.matches() && distanceMatcher.matches()) {
-                String destination = destinationMatcher.group(1);
-                double distance = Double.parseDouble(distanceMatcher.group(1));
+            String[] parts = line.split(",");
+            if (parts.length >= 2) {
+                String destination = parts[0].trim();
+                double distance = Double.parseDouble(parts[parts.length - 1].trim());
                 distances.put(destination, distance);
             }
         }

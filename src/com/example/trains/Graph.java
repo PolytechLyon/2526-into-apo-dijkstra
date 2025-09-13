@@ -65,26 +65,6 @@ public class Graph {
         output.flush();
     }
 
-    public void printDistances(PrintStream output) {
-        for (Vertex vertex :  this.vertices) {
-            Vertex current = vertex;
-            while (current != null) {
-                output.print(current.getName());
-                current = current.getPrevious();
-                output.print(current == null ? " " : " <- ");
-            }
-            output.printf("(%.2f) %n", vertex.getDistance());
-        }
-    }
-
-    public void printEdges(PrintStream output) {
-        for (Vertex vertex :  this.vertices) {
-            for (Edge edge: vertex.getEdges()) {
-                output.printf("%s -> %s\n", vertex.getName(), edge.target().getName());
-            }
-        }
-    }
-
     public void toDotFormat(String filename) {
         String filenameWithExtension = filename.endsWith(".dot") ?
                 filename : filename.concat(".dot");
@@ -92,6 +72,26 @@ public class Graph {
             this.toDotFormat(ps);
         } catch (FileNotFoundException e) {
             throw new RuntimeException(e);
+        }
+    }
+
+    public void printDistances(PrintStream output) {
+        for (Vertex vertex :  this.vertices) {
+            Vertex current = vertex;
+            while (current != null) {
+                output.printf("%s, ", current.getName());
+                current = current.getPrevious();
+            }
+            assert vertex != null;
+            output.printf("%.2f%n", vertex.getDistance());
+        }
+    }
+
+    public void printEdges(PrintStream output) {
+        for (Vertex vertex :  this.vertices) {
+            for (Edge edge: vertex.getEdges()) {
+                output.printf("%s, %s%n", vertex.getName(), edge.target().getName());
+            }
         }
     }
 
